@@ -9,5 +9,5 @@
 该项目API使用1.2.0-cdh5.7.0版本
 
 ## 参考并感谢
-1. [原始代码]: (https://github.com/hbaseinaction/twitbase)
-2. [deeplinux的twitbasedemo项目]:(https://github.com/deeplinux/twitbasedemo)
+1. [原始代码](https://github.com/hbaseinaction/twitbase)
+2. [deeplinux的twitbasedemo项目](https://github.com/deeplinux/twitbasedemo)
