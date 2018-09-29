@@ -5,3 +5,5 @@ target
 **/part-*
 **/_SUCCESS
 **/.*.crc
+.idea/
+twitbase.iml
