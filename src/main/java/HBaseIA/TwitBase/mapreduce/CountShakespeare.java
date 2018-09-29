@@ -7,6 +7,7 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
+import org.apache.hadoop.hbase.io.crypto.Context;
 import org.apache.hadoop.hbase.mapreduce.TableMapReduceUtil;
 import org.apache.hadoop.hbase.mapreduce.TableMapper;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -64,7 +65,7 @@ public class CountShakespeare {
     Scan scan = new Scan();
     scan.addColumn(TwitsDAO.TWITS_FAM, TwitsDAO.TWIT_COL);
     TableMapReduceUtil.initTableMapperJob(
-      Bytes.toString(TwitsDAO.TABLE_NAME),
+      TwitsDAO.TABLE_NAME.toString(),
       scan,
       Map.class,
       ImmutableBytesWritable.class,

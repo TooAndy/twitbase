@@ -97,14 +97,14 @@ public class HamletTagger {
     scan.addColumn(TwitsDAO.TWITS_FAM, TwitsDAO.USER_COL);
     scan.addColumn(TwitsDAO.TWITS_FAM, TwitsDAO.TWIT_COL);
     TableMapReduceUtil.initTableMapperJob(
-      Bytes.toString(TwitsDAO.TABLE_NAME),
+      TwitsDAO.TABLE_NAME.toString(),
       scan,
       Map.class,
       ImmutableBytesWritable.class,
       Put.class,
       job);
     TableMapReduceUtil.initTableReducerJob(
-      Bytes.toString(UsersDAO.TABLE_NAME),
+      UsersDAO.TABLE_NAME.toString(),
       IdentityTableReducer.class,
       job);
 
