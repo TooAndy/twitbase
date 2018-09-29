@@ -1,15 +1,16 @@
 package HBaseIA.TwitBase;
 
 import org.apache.hadoop.conf.Configuration;
+
+
+import HBaseIA.TwitBase.hbase.RelationsDAO;
+import HBaseIA.TwitBase.hbase.TwitsDAO;
+import HBaseIA.TwitBase.hbase.UsersDAO;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
-
-import HBaseIA.TwitBase.hbase.RelationsDAO;
-import HBaseIA.TwitBase.hbase.TwitsDAO;
-import HBaseIA.TwitBase.hbase.UsersDAO;
 
 public class InitTables {
 
@@ -26,14 +27,14 @@ public class InitTables {
       }
 
       if (admin.tableExists(UsersDAO.TABLE_NAME)) {
-        System.out.printf("Deleting %s\n", Bytes.toString(UsersDAO.TABLE_NAME));
+        System.out.printf("Deleting %s\n", UsersDAO.TABLE_NAME.toString());
         if (admin.isTableEnabled(UsersDAO.TABLE_NAME))
           admin.disableTable(UsersDAO.TABLE_NAME);
         admin.deleteTable(UsersDAO.TABLE_NAME);
       }
 
       if (admin.tableExists(TwitsDAO.TABLE_NAME)) {
-        System.out.printf("Deleting %s\n", Bytes.toString(TwitsDAO.TABLE_NAME));
+        System.out.printf("Deleting %s\n", TwitsDAO.TABLE_NAME.toString());
         if (admin.isTableEnabled(TwitsDAO.TABLE_NAME))
           admin.disableTable(TwitsDAO.TABLE_NAME);
         admin.deleteTable(TwitsDAO.TABLE_NAME);
