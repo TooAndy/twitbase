@@ -3,19 +3,22 @@ package HBaseIA.TwitBase;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.hadoop.hbase.client.HTablePool;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 
 import HBaseIA.TwitBase.hbase.TwitsDAO;
 import HBaseIA.TwitBase.hbase.UsersDAO;
 import HBaseIA.TwitBase.model.Twit;
+import utils.Const;
 
 public class TwitsTool {
 
   private static final Logger log = Logger.getLogger(TwitsTool.class);
 
-  public static final String usage =
+  private static final String usage =
     "twitstool action ...\n" +
     "  help - print this message and exit.\n" +
     "  post user text - post a new twit on user's behalf.\n" +
@@ -27,13 +30,18 @@ public class TwitsTool {
       System.exit(0);
     }
 
-    HTablePool pool = new HTablePool();
-    TwitsDAO twitsDao = new TwitsDAO(pool);
-    UsersDAO usersDao = new UsersDAO(pool);
+    Configuration configuration = new Configuration();
+    configuration.set("hbase.zookeeper.quorum", Const.ZK_QUORUM);
+    configuration.set("hbase.zookeeper.property.clientPort", Const.ZK_PORT);
+
+    Connection connection = ConnectionFactory.createConnection(configuration);
+
+    TwitsDAO twitsDao = new TwitsDAO(connection);
+    UsersDAO usersDao = new UsersDAO(connection);
 
     if ("post".equals(args[0])) {
       DateTime now = new DateTime();
-      log.debug(String.format("Posting twit at ...", now));
+      log.debug("Posting twit at ..." + now);
       twitsDao.postTwit(args[1], now, args[2]);
       Twit t = twitsDao.getTwit(args[1], now);
       usersDao.incTweetCount(args[1]);
@@ -42,12 +50,12 @@ public class TwitsTool {
 
     if ("list".equals(args[0])) {
       List<Twit> twits = twitsDao.list(args[1]);
-      log.info(String.format("Found %s twits.", twits.size()));
+      log.info("Found %s twits." +twits.size());
       for(Twit t : twits) {
         System.out.println(t);
       }
     }
 
-    pool.closeTablePool(TwitsDAO.TABLE_NAME);
+    connection.close();
   }
 }
