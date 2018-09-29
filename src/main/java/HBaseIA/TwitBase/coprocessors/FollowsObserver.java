@@ -7,9 +7,13 @@ import static HBaseIA.TwitBase.hbase.RelationsDAO.TO;
 
 import java.io.IOException;
 
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.HTablePool;
+import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.Durability;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
@@ -18,19 +22,23 @@ import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import HBaseIA.TwitBase.hbase.RelationsDAO;
+import utils.Const;
 
 public class FollowsObserver extends BaseRegionObserver {
 
-  private HTablePool pool = null;
+  private Connection connection = null;
 
   @Override
   public void start(CoprocessorEnvironment env) throws IOException {
-    pool = new HTablePool(env.getConfiguration(), Integer.MAX_VALUE);
+    Configuration configuration = new Configuration();
+    configuration.set("hbase.zookeeper.quorum", Const.ZK_QUORUM);
+    configuration.set("hbase.zookeeper.property.clientPort", Const.ZK_PORT);
+    connection = ConnectionFactory.createConnection(configuration);
   }
 
   @Override
   public void stop(CoprocessorEnvironment env) throws IOException {
-    pool.close();
+    connection.close();
   }
 
   @Override
@@ -38,7 +46,7 @@ public class FollowsObserver extends BaseRegionObserver {
       final ObserverContext<RegionCoprocessorEnvironment> e,
       final Put put,
       final WALEdit edit,
-      final boolean writeToWAL)
+      final Durability durability)
     throws IOException {
 
     byte[] table
@@ -46,12 +54,12 @@ public class FollowsObserver extends BaseRegionObserver {
     if (!Bytes.equals(table, FOLLOWS_TABLE_NAME))
       return;
 
-    KeyValue kv = put.get(RELATION_FAM, FROM).get(0);
-    String from = Bytes.toString(kv.getValue());
-    kv = put.get(RELATION_FAM, TO).get(0);
-    String to = Bytes.toString(kv.getValue());
+    Cell cell = put.get(RELATION_FAM, FROM).get(0);
+    String from = Bytes.toString(CellUtil.cloneValue(cell));
+    cell = put.get(RELATION_FAM, TO).get(0);
+    String to = Bytes.toString(CellUtil.cloneValue(cell));
 
-    RelationsDAO relations = new RelationsDAO(pool);
+    RelationsDAO relations = new RelationsDAO(connection);
     relations.addFollowedBy(to, from);
   }
 }
