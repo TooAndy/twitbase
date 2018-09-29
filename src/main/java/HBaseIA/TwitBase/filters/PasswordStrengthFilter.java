@@ -2,6 +2,7 @@ package HBaseIA.TwitBase.filters;
 
 import HBaseIA.TwitBase.hbase.UsersDAO;
 
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -37,6 +38,11 @@ public class PasswordStrengthFilter extends FilterBase {
 
   public void reset() {
     this.filterRow = false;
+  }
+
+  @Override  // TODO ...
+  public ReturnCode filterKeyValue(Cell v) throws IOException {
+    return null;
   }
 
   public void write(DataOutput out) throws IOException {
