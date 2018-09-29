@@ -5,10 +5,10 @@ import java.util.List;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTablePool;
+import org.apache.hadoop.hbase.client.*;
 import org.joda.time.DateTime;
 
+import utils.Const;
 import utils.LoadUtils;
 import HBaseIA.TwitBase.hbase.TwitsDAO;
 import HBaseIA.TwitBase.hbase.UsersDAO;
@@ -16,7 +16,7 @@ import HBaseIA.TwitBase.model.User;
 
 public class LoadTwits {
 
-  public static final String usage =
+  private static final String usage =
     "loadtwits count\n" +
     "  help - print this message and exit.\n" +
     "  count - add count random twits to all TwitBase users.\n";
@@ -41,9 +41,12 @@ public class LoadTwits {
       System.out.println(usage);
       System.exit(0);
     }
+    Configuration configuration = new Configuration();
+    configuration.set("hbase.zookeeper.quorum", Const.ZK_QUORUM);
+    configuration.set("hbase.zookeeper.property.clientPort", Const.ZK_PORT);
 
-    Configuration conf = HBaseConfiguration.create();
-    HBaseAdmin admin = new HBaseAdmin(conf);
+    Connection connection = ConnectionFactory.createConnection(configuration);
+    Admin admin = connection.getAdmin();
 
     if (!admin.tableExists(UsersDAO.TABLE_NAME) ||
         !admin.tableExists(TwitsDAO.TABLE_NAME)) {
@@ -52,9 +55,8 @@ public class LoadTwits {
       System.exit(0);
     }
 
-    HTablePool pool = new HTablePool(conf, Integer.MAX_VALUE);
-    UsersDAO users = new UsersDAO(pool);
-    TwitsDAO twits = new TwitsDAO(pool);
+    UsersDAO users = new UsersDAO(connection);
+    TwitsDAO twits = new TwitsDAO(connection);
 
     int count = Integer.parseInt(args[0]);
     List<String> words = LoadUtils.readResource(LoadUtils.WORDS_PATH);
@@ -65,7 +67,7 @@ public class LoadTwits {
       }
     }
 
-    pool.closeTablePool(UsersDAO.TABLE_NAME);
+    connection.close();
   }
 
 }
