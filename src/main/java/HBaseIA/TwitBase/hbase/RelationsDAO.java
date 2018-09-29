@@ -6,13 +6,10 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.HTablePool;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -32,10 +29,10 @@ public class RelationsDAO {
 
   private static final int KEY_WIDTH = 2 * Md5Utils.MD5_LENGTH;
 
-  private HTablePool pool;
+  private Connection connection;
 
-  public RelationsDAO(HTablePool pool) {
-    this.pool = pool;
+  public RelationsDAO(Connection connection) {
+    this.connection = connection;
   }
 
   public static byte[] mkRowKey(String a) {
@@ -75,11 +72,11 @@ public class RelationsDAO {
 
   public void addRelation(byte[] table, String fromId, String toId) throws IOException {
 
-    HTableInterface t = pool.getTable(table);
+    Table t = connection.getTable(TableName.valueOf(Bytes.toString(table)));
 
     Put p = new Put(mkRowKey(fromId, toId));
-    p.add(RELATION_FAM, FROM, Bytes.toBytes(fromId));
-    p.add(RELATION_FAM, TO, Bytes.toBytes(toId));
+    p.addColumn(RELATION_FAM, FROM, Bytes.toBytes(fromId));
+    p.addColumn(RELATION_FAM, TO, Bytes.toBytes(toId));
     t.put(p);
 
     t.close();
@@ -95,7 +92,7 @@ public class RelationsDAO {
 
   public List<HBaseIA.TwitBase.model.Relation> listRelations(byte[] table, String fromId) throws IOException {
 
-    HTableInterface t = pool.getTable(table);
+    Table t = connection.getTable(TableName.valueOf(Bytes.toString(table)));
     String rel = (Bytes.equals(table, FOLLOWS_TABLE_NAME)) ? "->" : "<-";
 
     byte[] startKey = mkRowKey(fromId);
@@ -107,10 +104,10 @@ public class RelationsDAO {
 
     ResultScanner results = t.getScanner(scan);
     List<HBaseIA.TwitBase.model.Relation> ret
-      = new ArrayList<HBaseIA.TwitBase.model.Relation>();
+      = new ArrayList<>();
     for (Result r : results) {
-      KeyValue kv = r.getColumnLatest(RELATION_FAM, TO);
-      String toId = Bytes.toString(kv.getValue());
+      Cell cell = r.getColumnLatestCell(RELATION_FAM, TO);
+      String toId = Bytes.toString(CellUtil.cloneValue(cell));
       ret.add(new Relation(rel, fromId, toId));
     }
 
@@ -120,7 +117,7 @@ public class RelationsDAO {
 
   @SuppressWarnings("unused")
   public long followedByCountScan (String user) throws IOException {
-    HTableInterface followed = pool.getTable(FOLLOWED_TABLE_NAME);
+    Table followed = connection.getTable(TableName.valueOf(Bytes.toString(FOLLOWED_TABLE_NAME)));
 
     final byte[] startKey = Md5Utils.md5sum(user);
     final byte[] endKey = Arrays.copyOf(startKey, startKey.length);
@@ -137,20 +134,13 @@ public class RelationsDAO {
   }
 
   public long followedByCount (final String userId) throws Throwable {
-    HTableInterface followed = pool.getTable(FOLLOWED_TABLE_NAME);
-
+    Table followed = connection.getTable(TableName.valueOf(Bytes.toString(FOLLOWED_TABLE_NAME)));
     final byte[] startKey = Md5Utils.md5sum(userId);
     final byte[] endKey = Arrays.copyOf(startKey, startKey.length);
     endKey[endKey.length-1]++;
 
     Batch.Call<RelationCountProtocol, Long> callable =
-      new Batch.Call<RelationCountProtocol, Long>() {
-        @Override
-        public Long call(RelationCountProtocol instance)
-            throws IOException {
-          return instance.followedByCount(userId);
-        }
-    };
+            instance -> instance.followedByCount(userId);
 
     Map<byte[], Long> results =
       followed.coprocessorExec(
@@ -161,7 +151,7 @@ public class RelationsDAO {
 
     long sum = 0;
     for(Map.Entry<byte[], Long> e : results.entrySet()) {
-      sum += e.getValue().longValue();
+      sum += e.getValue();
     }
     return sum;
   }
